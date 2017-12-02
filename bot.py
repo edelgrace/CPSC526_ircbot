@@ -117,7 +117,8 @@ class Bot:
 
 
     def handshake(self):
-        """ Grab the username """
+        """ Send the username """
+        
         try:
             # send the NICk
             msg = "NICK edel" + str(self.NICK_COUNT) + "\n"
