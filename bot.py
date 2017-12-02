@@ -1,13 +1,14 @@
 # Edel Altares 1009872 Tutorial 2
 
+import argparse
+import datetime
+import os
+import queue
 import select
 import socket
-import os
 import sys
-import queue
-import argparse
 import time
-import datetime
+
 
 class Bot:
     HOSTNAME = None
@@ -15,6 +16,9 @@ class Bot:
     CHANNEL = None
     SECRET = None
     BOT_SOCKET = None
+
+    BOT_COUNT = 0
+    NICK_COUNT = 0
 
     MESSAGES = {}
     OUTPUTS = []
@@ -54,13 +58,9 @@ class Bot:
         # setup the client socket
         try:
             self.BOT_SOCKET = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            
             self.BOT_SOCKET.connect((self.HOSTNAME, self.PORT))
             
-            self.INPUTS.append(self.BOT_SOCKET)
-            self.OUTPUTS.append(self.BOT_SOCKET)
-
-            self.MESSAGES[self.BOT_SOCKET] = queue.Queue()
-
         except Exception as e:
             sys.stderr.write("Error: " + str(e))
             sys.exit(0)
@@ -70,16 +70,26 @@ class Bot:
         return
 
 
-    def send_msg(self, data, sckt):
+    def send_msg(self, data):
         """ Function to send message to a socket """
-        if not isinstance(data, (bytes, bytearray)):
-            data = bytes(data, "utf-8")
+        
+        print("Sending:" + data)
 
-        self.MESSAGES[sckt].put(data)
+        try:
+            self.BOT_SOCKET.send(data.encode())
+        except Exception as e:
+            print(str(e))
 
-        # add to the outputs
-        if sckt not in self.OUTPUTS:
-            self.OUTPUTS.append(sckt)
+
+    def check_data(self, data):
+        """ Check the data """
+
+        # check if bot logged onto IRC server
+        if "Nickname is already in use" in data:
+            self.NICK_COUNT += 1
+            self.CONNECTED = False
+        else:
+            self.BOT_COUNT += 1
 
 
     def close_socket(self, sckt):
@@ -96,18 +106,21 @@ class Bot:
         sckt.close()
 
 
-    def handshake(self, sckt):
+    def handshake(self):
         """ Grab the username """
+        try:
+            # send the NICk
+            msg = "NICK edel" + str(self.NICK_COUNT) + "\n"
+            self.send_msg(msg)
 
-        # send the NICk
-        msg = "NICK edel"
-        self.send_msg(msg, sckt)
+            # send the USER
+            msg = "USER edel * * :Edel Altares\n"
+            self.send_msg(msg)
 
-        # send the USER
-        msg = "USER edel * * :Edel Altares"
-        self.send_msg(msg, sckt)
-
-        self.CONNECTED = True
+            self.CONNECTED = True
+            
+        except Exception as e:
+            print(e)
 
         return
 
@@ -137,51 +150,25 @@ class Bot:
 
     def run(self):
         """ Run the bot """
+        
+        while True:
 
-        if not self.CONNECTED:
-            self.handshake()
+            if not self.CONNECTED:
+                self.handshake()
+                print("handshake done")
 
-        while self.INPUTS:
 
-            readable, writable, error = select.select(self.INPUTS, self.OUTPUTS, [])
+            print("hello")
+            data = self.BOT_SOCKET.recv(1024)
 
-            print(len(readable))
+            if data:
+                data = data.decode("utf-8")
+                print(data)
+                self.check_data(data)
 
-            # go through inputs
-            for sckt in readable:
-                print("readable")
-                print(len(readable))
-                
-                data = sckt.recv(1024)
-
-                if data:
-                    print(data)
-
-                # no more data = close connection
-                else: 
-                    print("Close?")
-                    self.close_socket(sckt)
-    
-            # go through outputs
-            for sckt in writable:
-                print("writable")
-                print(len(writable))
-
-                if not self.CONNECTED:
-                    self.handshake(sckt)
-
-                try:
-                    # grab the next message
-                    next_msg = self.MESSAGES[sckt].get_nowait()
-
-                    print(next_msg)
-
-                except queue.Empty:
-                    self.OUTPUTS.remove(sckt)
-                    
-                else:
-                    # send the message
-                    sckt.send(next_msg)
+            else:
+                print("close")
+                self.BOT_SOCKET.close()
 
 
 def run():
