@@ -23,8 +23,9 @@ class Bot:
     MESSAGES = {}
     OUTPUTS = []
     INPUTS = []
-    CONNECTED = False
 
+    CONNECTED = False
+    JOINED = False
 
     def parse(self):
         """ Parse the arguments """
@@ -88,8 +89,17 @@ class Bot:
         if "Nickname is already in use" in data:
             self.NICK_COUNT += 1
             self.CONNECTED = False
-        else:
+            
+        # join server successfully
+        elif data.split()[1] == "001":
             self.BOT_COUNT += 1
+            self.CONNECTED = True
+            print(str(self.BOT_COUNT))
+
+        # join channel successfully
+        elif "JOIN :#" + self.CHANNEL:
+            print("Joined channel")
+            self.JOINED = True
 
 
     def close_socket(self, sckt):
@@ -117,13 +127,22 @@ class Bot:
             msg = "USER edel * * :Edel Altares\n"
             self.send_msg(msg)
 
-            self.CONNECTED = True
-            
         except Exception as e:
             print(e)
 
         return
 
+
+    def join(self):
+        """ Join set channel """
+
+        try:
+            # send join request
+            msg = "JOIN #" + str(self.CHANNEL) + "\n"
+            self.send_msg(msg)
+
+        except Exception as e:
+            print(str(e))
 
     def attack(self):
         """ Perform an attack """
@@ -157,6 +176,8 @@ class Bot:
                 self.handshake()
                 print("handshake done")
 
+            if not self.JOINED and self.CONNECTED:
+                self.join()
 
             print("hello")
             data = self.BOT_SOCKET.recv(1024)
