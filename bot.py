@@ -327,6 +327,11 @@ class Bot:
 
         self.send_msg(msg)
         
+        # old variables
+        self.OLD_CHAN = self.CHANNEL
+        self.OLD_HOST = self.HOSTNAME
+        self.OLD_PORT = self.PORT
+
         # new variables
         self.HOSTNAME = host
         self.PORT = port
@@ -334,13 +339,16 @@ class Bot:
 
         self.BOT_SOCKET = new_socket
 
+        self.MESSAGES[self.BOT_SOCKET] = queue.Queue()
+        self.INPUTS = [self.BOT_SOCKET]
+
         self.PONG = False
         self.CONNECTED_SOCKET = False
         self.CONNECTED_SERVER = False
         self.JOINED = False
         self.SHUTDOWN = False
         self.MIGRATE = False
-        
+
         # reset variables
 
         # change flag
