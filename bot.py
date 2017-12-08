@@ -25,7 +25,8 @@ class Bot:
     OUTPUTS = []
     INPUTS = []
 
-    CONNECTED = False
+    CONNECTED_SOCKET = False
+    CONNECTED_SERVER = False
     JOINED = False
 
     def parse(self):
@@ -60,14 +61,14 @@ class Bot:
         # setup the client socket
         try:
             self.BOT_SOCKET = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            
-            self.BOT_SOCKET.connect((self.HOSTNAME, self.PORT))
-            
-        except Exception as e:
-            sys.stderr.write("Error: " + str(e))
-            sys.exit(0)
 
-        # TODO
+            self.BOT_SOCKET.connect((self.HOSTNAME, self.PORT))
+            self.BOT_SOCKET.settimeout(5)
+            self.CONNECTED_SOCKET = True
+
+        except Exception as e:
+            print("ERROR: " + str(e))
+            self.CONNECTED_SOCKET = False
 
         return
 
@@ -78,6 +79,7 @@ class Bot:
         print("Sending:" + data)
 
         try:
+            self.BOT_SOCKET.settimeout(5)
             self.BOT_SOCKET.send(data.encode())
         except Exception as e:
             print(str(e))
@@ -89,12 +91,12 @@ class Bot:
         # check if bot logged onto IRC server
         if "Nickname is already in use" in data:
             self.NICK_COUNT += 1
-            self.CONNECTED = False
+            self.CONNECTED_SERVER = False
             
         # join server successfully
         elif data.split()[1] == "001":
             self.BOT_COUNT += 1
-            self.CONNECTED = True
+            self.CONNECTED_SERVER = True
             print(str(self.BOT_COUNT))
 
         # join channel successfully
@@ -126,7 +128,7 @@ class Bot:
             self.send_msg(msg)
 
             # send the USER
-            msg = "USER edel * * :Edel Altares\n"
+            msg = "USER edel" + str(self.NICK_COUNT) + " * * :Edel Altares\n"
             self.send_msg(msg)
 
         except Exception as e:
@@ -173,15 +175,16 @@ class Bot:
         """ Run the bot """
         
         while True:
+            # join the server
+            # if not self.CONNECTED_SERVER and self.CONNECTED_SOCKET:
+            self.handshake()
+            print("handshake done")
 
-            if not self.CONNECTED:
-                self.handshake()
-                print("handshake done")
+            # join the channel
+            # if not self.JOINED and self.CONNECTED_SERVER:
+            self.join()
 
-            if not self.JOINED and self.CONNECTED:
-                self.join()
-
-            print("hello")
+            self.BOT_SOCKET.settimeout(5)
             data = self.BOT_SOCKET.recv(1024)
 
             if data:
@@ -190,17 +193,24 @@ class Bot:
                 self.check_data(data)
 
             else:
-                print("close")
-                self.BOT_SOCKET.close()
+                self.CONNECTED_SOCKET = False
 
 
 def run():
     """ Run the client """
     bot = Bot()
-    bot.setup()
 
     while True:
-        threading.Thread(bot.run()).start()
+        bot.setup()
+        
+        # check if connected
+        if bot.CONNECTED_SOCKET:
+            bot.run()
+
+        else:
+            # wait 5 seconds before reconnecting
+            print("Attempting reconnection...")
+            time.sleep(5)
 
 
 # run the program

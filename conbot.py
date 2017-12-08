@@ -186,29 +186,27 @@ class ControllerBot:
 
     def run(self):
         """ Run the bot """
-        
-        while True:
+    
+        if not self.CONNECTED:
+            self.handshake()
 
-            if not self.CONNECTED:
-                self.handshake()
+        if not self.JOINED and self.CONNECTED:
+            print(self.JOINED)
+            print(self.CONNECTED)
+            self.join()
 
-            if not self.JOINED and self.CONNECTED:
-                print(self.JOINED)
-                print(self.CONNECTED)
-                self.join()
+        data = self.BOT_SOCKET.recv(1024)
 
-            data = self.BOT_SOCKET.recv(1024)
+        if self.JOINED and self.CONNECTED:
+            threading.Thread(self.command())
 
-            if self.JOINED and self.CONNECTED:
-                threading.Thread(self.command())
+        if data:
+            data = data.decode("utf-8")
+            print(data)
+            self.check_data(data)
 
-            if data:
-                data = data.decode("utf-8")
-                print(data)
-                self.check_data(data)
-
-            else:
-                self.BOT_SOCKET.close()
+        else:
+            self.BOT_SOCKET.close()
 
 
 def run():
