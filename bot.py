@@ -8,6 +8,7 @@ import select
 import socket
 import sys
 import time
+import threading
 
 
 class Bot:
@@ -199,7 +200,7 @@ def run():
     bot.setup()
 
     while True:
-        bot.run()
+        threading.Thread(bot.run()).start()
 
 
 # run the program

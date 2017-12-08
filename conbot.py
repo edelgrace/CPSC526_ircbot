@@ -8,6 +8,7 @@ import select
 import socket
 import sys
 import time
+import threading
 
 
 class ControllerBot:
@@ -178,6 +179,11 @@ class ControllerBot:
         return
 
 
+    def command(self):
+        """ """
+
+        cmd = input("Enter a command: ")
+
     def run(self):
         """ Run the bot """
         
@@ -191,11 +197,10 @@ class ControllerBot:
                 print(self.CONNECTED)
                 self.join()
 
-            print("hello")
             data = self.BOT_SOCKET.recv(1024)
 
             if self.JOINED and self.CONNECTED:
-                cmd = input("Enter a command: ")
+                threading.Thread(self.command())
 
             if data:
                 data = data.decode("utf-8")
@@ -212,7 +217,7 @@ def run():
     conBot.setup()
 
     while True:
-        conBot.run()
+        threading.Thread(conBot.run()).start()
 
 
 # run the program
