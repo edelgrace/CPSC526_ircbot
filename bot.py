@@ -15,6 +15,11 @@ class Bot:
     HOSTNAME = None
     PORT = None
     CHANNEL = None
+
+    OLD_HOST = None
+    OLD_PORT = None
+    OLD_CHAN = None
+
     SECRET = None
     BOT_SOCKET = None
     CONTROLLER = None
@@ -402,7 +407,7 @@ class Bot:
                         sys.exit(0)
 
                     if self.MIGRATE:
-                        self.setup()
+                        self.handshake()
 
                         self.MIGRATE = False
                         
