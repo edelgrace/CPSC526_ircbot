@@ -19,6 +19,7 @@ class Bot:
     OLD_HOST = None
     OLD_PORT = None
     OLD_CHAN = None
+    OLD_SCKT = None
 
     SECRET = None
     BOT_SOCKET = None
@@ -318,6 +319,8 @@ class Bot:
             
             self.send_msg(msg) 
 
+            return
+
         # success
 
         # send to controller
@@ -327,10 +330,13 @@ class Bot:
 
         self.send_msg(msg)
         
+        self.MIGRATE = True
+
         # old variables
         self.OLD_CHAN = self.CHANNEL
         self.OLD_HOST = self.HOSTNAME
         self.OLD_PORT = self.PORT
+        self.OLD_SCKT = self.BOT_SOCKET
 
         # new variables
         self.HOSTNAME = host
@@ -431,6 +437,7 @@ class Bot:
 
                         self.MIGRATE = False
                         
+                        self.OLD_SCKT.close()
                     continue
 
                 else:
