@@ -63,7 +63,9 @@ class Bot:
             self.BOT_SOCKET = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             self.BOT_SOCKET.connect((self.HOSTNAME, self.PORT))
 
+            # setup select
             self.INPUTS.append(self.BOT_SOCKET)
+            self.MESSAGES[self.BOT_SOCKET] = {}
 
             self.CONNECTED_SOCKET = True
 
@@ -92,7 +94,7 @@ class Bot:
 
 
         for line in data:
-            
+
             line = line.split()
 
             if len(line) < 2:
@@ -201,12 +203,27 @@ class Bot:
                     print(data)
                     self.check_data(data)
 
+                    # register on server
                     if not self.CONNECTED_SERVER:
                         self.handshake()
+
+                    # join a channel
+                    if self.CONNECTED_SERVER and not self.JOINED:
+                        self.join()
 
                 # connection was closed
                 else:
                     self.CONNECTED_SOCKET = False
+
+            for socket in writable:
+                try:
+                    next_msg = self.MESSAGES[socket].get_nowait()
+
+                except queue.Empty:
+                    continue
+
+                else:
+                    socket.send(next_msg)
 
 def run():
     """ Run the client """
