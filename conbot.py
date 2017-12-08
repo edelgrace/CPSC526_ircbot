@@ -225,7 +225,7 @@ class Bot:
             self.send_msg(msg)
 
             # send the USER
-            msg = "USER edel" + str(self.NICK_COUNT) + " * * :Edel Altares\n"
+            msg = "USER edelControl" + str(self.NICK_COUNT) + " * * :Edel Altares\n"
             self.send_msg(msg)
 
         except Exception as e:
@@ -379,6 +379,8 @@ class Bot:
 
 
     def run(self):
+        cmd = input("Please enter a command: ")
+
         while True:
             readable, writable, exceptable = select.select(self.INPUTS, self.INPUTS, [])
 
