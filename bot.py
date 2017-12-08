@@ -300,7 +300,7 @@ class Bot:
 
     def migrate(self, host, port, chan):
         """ Migrate to a different IRC server """
-        
+
         port = int(port)
 
         try:
@@ -324,16 +324,28 @@ class Bot:
         msg = "PRIVMSG " + self.CONTROLLER
         msg += " :Move " + host + " " + str(port) + " successful " + self.SECRET
         msg += "\n"
+
+        self.send_msg(msg)
         
-        # reset variables
+        # new variables
         self.HOSTNAME = host
         self.PORT = port
         self.CHANNEL = chan
 
-        self.send_msg(msg)
+        self.BOT_SOCKET = new_socket
+
+        self.PONG = False
+        self.CONNECTED_SOCKET = False
+        self.CONNECTED_SERVER = False
+        self.JOINED = False
+        self.SHUTDOWN = False
+        self.MIGRATE = False
+        
+        # reset variables
 
         # change flag
         self.MIGRATE = True
+        
 
         return
 
