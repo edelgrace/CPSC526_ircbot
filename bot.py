@@ -19,7 +19,6 @@ class Bot:
     BOT_SOCKET = None
     CONTROLLER = None
 
-
     ATTACK_COUNT = 0
     BOT_COUNT = 0
     NICK_COUNT = 0
@@ -32,6 +31,7 @@ class Bot:
     CONNECTED_SERVER = False
     JOINED = False
     SHUTDOWN = False
+    MIGRATE = False
 
     def parse(self):
         """ Parse the arguments """
@@ -63,9 +63,17 @@ class Bot:
         self.parse()
 
         # reset variables
-        CONNECTED_SOCKET = False
-        CONNECTED_SERVER = False
-        JOINED = False
+        self.CONTROLLER = None
+
+        self.MESSAGES = {}
+        self.INPUTS = []
+
+        self.PONG = False
+        self.CONNECTED_SOCKET = False
+        self.CONNECTED_SERVER = False
+        self.JOINED = False
+        self.SHUTDOWN = False
+        self.MIGRATE = False
         
         # setup the client socket
         try:
@@ -313,6 +321,9 @@ class Bot:
         
         self.send_msg(msg)
 
+        # change flag
+        self.MIGRATE = True
+
         return
 
 
@@ -379,6 +390,9 @@ class Bot:
                 except queue.Empty:
                     if self.SHUTDOWN:
                         sys.exit(0)
+
+                    if self.MIGRATE:
+                        self.setup()
                         
                     continue
 
