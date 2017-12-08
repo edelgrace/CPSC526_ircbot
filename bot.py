@@ -65,7 +65,7 @@ class Bot:
 
             # setup select
             self.INPUTS.append(self.BOT_SOCKET)
-            self.MESSAGES[self.BOT_SOCKET] = {}
+            self.MESSAGES[self.BOT_SOCKET] = queue.Queue()
 
             self.CONNECTED_SOCKET = True
 
@@ -211,18 +211,24 @@ class Bot:
                     if self.CONNECTED_SERVER and not self.JOINED:
                         self.join()
 
+                    # listen for commands
+                    if self.CONNECTED_SERVER and self.JOINED:
+                        self.cmds()
+
                 # connection was closed
                 else:
                     self.CONNECTED_SOCKET = False
 
             for socket in writable:
                 try:
+                    # get the msg
                     next_msg = self.MESSAGES[socket].get_nowait()
 
                 except queue.Empty:
                     continue
 
                 else:
+                    # send the msg
                     socket.send(next_msg)
 
 def run():
