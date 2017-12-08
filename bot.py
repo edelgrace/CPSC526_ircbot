@@ -57,6 +57,11 @@ class Bot:
         # get parsed arguments
         self.parse()
 
+        # reset variables
+        CONNECTED_SOCKET = False
+        CONNECTED_SERVER = False
+        JOINED = False
+        
         # setup the client socket
         try:
             # connect to server
@@ -115,6 +120,16 @@ class Bot:
             elif line[1] == "JOIN":
                 print("Joined channel")
                 self.JOINED = True
+
+            # responde to ping
+            elif line[0] == "PING":
+                self.send_msg("PONG " + line[1])
+
+
+    def cmds(self, data):
+        """ Listen for commands """
+
+        print(data)
 
 
     def close_socket(self, sckt):
@@ -213,7 +228,7 @@ class Bot:
 
                     # listen for commands
                     if self.CONNECTED_SERVER and self.JOINED:
-                        self.cmds()
+                        self.cmds(data)
 
                 # connection was closed
                 else:
