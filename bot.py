@@ -18,12 +18,16 @@ class Bot:
     SECRET = None
     BOT_SOCKET = None
 
+
+    BOT_TOTAL_COUNT = 6
     BOT_COUNT = 0
     NICK_COUNT = 0
 
     MESSAGES = {}
     INPUTS = []
 
+    PONG = False
+    CONTROLLER = False
     CONNECTED_SOCKET = False
     CONNECTED_SERVER = False
     JOINED = False
@@ -125,19 +129,31 @@ class Bot:
                 self.JOINED = True
 
             # responde to ping
-            elif line[0] == "PING":
-                self.send_msg("PONG " + line[1])
-                print("DEBUG: PING RECEIVED")
-
+            elif line[0] == "PING" and not self.PONG:
+                pong = threading.Thread(target=self.pong, args=line[1])
+                self.PONG = True
 
     def cmds(self, data):
         """ Listen for commands """
 
-        print(data)
+        print("DEBUG: "  + data)
+
+        data = data.split()
+
+        # get the message and sendedr
+        msg = data[-1]
+        sender = data[0].split(":")[1].split("!")[0]
+
+        print("DEBUG: " + msg)
+        print("DEBUG: " + sender)
+
+        if "shutdown" in msg:
+            print("DEBUG TODO")
 
 
     def close_socket(self, sckt):
         """ Close a connection """
+
         print("Socket closed")
         # remove from outputs
         if sckt in self.OUTPUTS:
@@ -148,6 +164,12 @@ class Bot:
 
         # close the socket
         sckt.close()
+
+
+    def pong(self, daemon):
+        """ Send pong """
+        threading.Timer(5.0, self.pong).start() 
+        self.send_msg("PONG " + daemon)
 
 
     def handshake(self):
