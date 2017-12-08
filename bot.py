@@ -84,10 +84,13 @@ class Bot:
     def send_msg(self, data):
         """ Function to send message to a socket """
         
-        print("Sending: " + data)
+        print("DEBUG sending: " + data)
+
+        data = data.encode("utf-8")
 
         try:
-            self.BOT_SOCKET.send(data.encode())
+            # queue up the data
+            self.MESSAGES[self.BOT_SOCKET].put(data)
 
         except Exception as e:
             print(str(e))
@@ -118,12 +121,13 @@ class Bot:
 
             # join channel successfully
             elif line[1] == "JOIN":
-                print("Joined channel")
+                print("DEBUG: Joined channel")
                 self.JOINED = True
 
             # responde to ping
             elif line[0] == "PING":
                 self.send_msg("PONG " + line[1])
+                print("DEBUG: PING RECEIVED")
 
 
     def cmds(self, data):
